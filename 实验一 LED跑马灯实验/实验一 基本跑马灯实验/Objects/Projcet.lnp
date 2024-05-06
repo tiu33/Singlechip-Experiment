@@ -1,0 +1,4 @@
+".\Objects\main.obj",
+".\Objects\Delay.obj" 
+TO ".\Objects\Projcet" 
+PRINT(".\Listings\Projcet.m51") RAMSIZE(256) 
