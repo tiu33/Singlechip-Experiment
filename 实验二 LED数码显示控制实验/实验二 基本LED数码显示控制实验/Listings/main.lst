@@ -1,0 +1,73 @@
+C51 COMPILER V9.54   MAIN                                                                  04/28/2024 23:56:58 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Tool\Keil5\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include <INTRINS.H>
+   3          #include "Delay.h"
+   4          #include "Nixie.h"
+   5          
+   6          unsigned int num,T0Count; // 中断次数
+   7          
+   8          /*
+   9          void Init_Timer0(void)
+  10          {
+  11              TMOD |=  0x01;   //????1,16????,??"|"?????????????????
+  12              TL0 = 0x18;                     //reload timer0 low byte
+  13              TH0 = 0xFC;                //reload timer0 high byte
+  14              TR0 = 1;                        //timer0 start running
+  15              ET0 = 1;                        //enable timer0 interrupt
+  16              EA = 1;                         //open global interrupt switch
+  17          }
+  18          */
+  19          
+  20          void main()
+  21          {
+  22   1          //Init_Timer0();
+  23   1          Timer0Init();
+*** WARNING C206 IN LINE 23 OF main.c: 'Timer0Init': missing function-prototype
+  24   1          // 括号内不带参数
+  25   1          // 注意函数名字对应
+  26   1          // 在C51中，调用已经写好的函数前面也不需要加void或者int
+  27   1          // 你像void Timer0Init();就无法调用函数了
+  28   1          while(1)
+  29   1          {
+  30   2              Nixie(num);
+  31   2          }
+  32   1      }
+  33          
+  34          void Timer0_Rountine() interrupt 1
+  35          {
+  36   1        TH0 = 0xDC;     //设置定时初值    10ms
+  37   1        TL0 = 0x00;     //设置定时初值
+  38   1        num += 1;
+  39   1        /*
+  40   1        // 直接让其溢出等于0即可
+  41   1        if(num>=10000)
+  42   1        {
+  43   1            num=0;
+  44   1        }
+  45   1        */
+  46   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     31    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   MAIN                                                                  04/28/2024 23:56:58 PAGE 2   
+
+   DATA SIZE        =      4    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

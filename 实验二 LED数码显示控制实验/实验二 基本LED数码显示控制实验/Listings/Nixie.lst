@@ -1,0 +1,51 @@
+C51 COMPILER V9.54   NIXIE                                                                 04/28/2024 23:47:13 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE NIXIE
+OBJECT MODULE PLACED IN .\Objects\Nixie.obj
+COMPILER INVOKED BY: D:\Tool\Keil5\Keil5\C51\BIN\C51.EXE Nixie.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Lis
+                    -tings\Nixie.lst) TABS(2) OBJECT(.\Objects\Nixie.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Delay.h"
+   3          
+   4          unsigned char NixieTable[]={0x3F,0X06,0X5B,0X4F,0X66,0X6D,0X7D,0X07,0X7F,0X6F};
+   5          
+   6          void Nixie(unsigned int theCount)       // 数码管显示的子函数，显示中断次数
+   7          {
+   8   1          unsigned char wei = 0xfe;
+   9   1          unsigned char num;
+  10   1          // 0xFF~0xBF是只对前六个数码管进行操作
+  11   1          while(wei != 0xBF)
+  12   1          {
+  13   2              // 使用取余操作获取当前最低位数字
+  14   2              num = theCount % 10;
+  15   2              // 然后用除法去掉当前最低位数字
+  16   2              theCount = theCount / 10;
+  17   2              P2 = wei;
+  18   2              P0 = NixieTable[num];
+  19   2              // 形成数字后先延时，否则会比较暗
+  20   2              // 延时1ms，视觉暂留
+  21   2              Delay(1);
+  22   2              // 清零消隐
+  23   2              P0=0x00;
+  24   2              wei = (wei<<1)|0x01;
+  25   2          }
+  26   1      }
+  27          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     73    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     10       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
