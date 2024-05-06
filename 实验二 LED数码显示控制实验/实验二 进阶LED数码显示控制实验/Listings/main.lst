@@ -1,0 +1,81 @@
+C51 COMPILER V9.54   MAIN                                                                  05/06/2024 12:13:07 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Tool\Keil5\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include <INTRINS.H>
+   3          #include "Delay.h"
+   4          #include "Nixie.h"
+   5          #include "Timer0.h"
+   6          
+   7          unsigned int num,T0Count; // 中断次数
+   8          
+   9          /*
+  10          void Init_Timer0(void)
+  11          {
+  12              TMOD |=  0x01;   //????1,16????,??"|"?????????????????
+  13              TL0 = 0x18;                     //reload timer0 low byte
+  14              TH0 = 0xFC;                //reload timer0 high byte
+  15              TR0 = 1;                        //timer0 start running
+  16              ET0 = 1;                        //enable timer0 interrupt
+  17              EA = 1;                         //open global interrupt switch
+  18          }
+  19          */
+  20          
+  21          void main()
+  22          {
+  23   1          //Init_Timer0();
+  24   1          Timer0Init();
+  25   1          // 括号内不带参数
+  26   1          // 注意函数名字对应
+  27   1          // 在C51中，调用已经写好的函数前面也不需要加void或者int
+  28   1          // 你像void Timer0Init();就无法调用函数了
+  29   1          while(1)
+  30   1          {
+  31   2              Nixie(num);
+  32   2              if(P1_0==0)
+  33   2              {
+  34   3                Delay(20);            //如果P10是按下的状态
+  35   3                while(P1_0==0);       //按下不操作，松手才操作
+  36   3                Delay(20);            //松手以后消除抖动
+  37   3                EA=~EA;               //打开或关闭中断
+  38   3              }
+  39   2          }
+  40   1      }
+  41          
+  42          void Timer0_Rountine() interrupt 1
+  43          {
+  44   1        TH0 = 0xDC;     //设置定时初值    10ms
+  45   1        TL0 = 0x00;     //设置定时初值
+  46   1        num += 1;
+  47   1        P3_0=0;
+  48   1        /*
+  49   1        // 直接让其溢出等于0即可
+  50   1        if(num>=10000)
+  51   1        {
+  52   1            num=0;
+  53   1        }
+  54   1        */
+C51 COMPILER V9.54   MAIN                                                                  05/06/2024 12:13:07 PAGE 2   
+
+  55   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     55    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
