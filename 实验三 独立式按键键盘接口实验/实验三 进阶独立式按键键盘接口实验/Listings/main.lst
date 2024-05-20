@@ -1,0 +1,119 @@
+C51 COMPILER V9.54   MAIN                                                                  05/08/2024 00:15:50 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Tool\Keil5\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Delay.h"
+   3          #include "Nixie.h"
+   4          #include "Timer0.h"
+   5          #include "Key.h"
+   6          
+   7          unsigned char RunFlag=1;      //RunFlag:模式选择,显示模式/修改模式
+   8          unsigned char Wei, KeyNum;  //Wei:数位
+   9          //1是显示器显示数值或选择修改的数位
+  10          //2是增一，3是数值减一，4是移位
+  11          char ShuweiTable[] = {0, 0, 0};
+  12          
+  13          
+  14          void main()
+  15          {
+  16   1          Timer0Init();
+  17   1          // 括号内不带参数
+  18   1          // 注意函数名字对应
+  19   1          // 在C51中，调用已经写好的函数前面也不需要加void或者int
+  20   1          // 你像void Timer0Init();就无法调用函数了
+  21   1          while(1)
+  22   1          {
+  23   2              KeyNum=Key();
+  24   2              P1 = 0xFF;    // 进入输入模式
+  25   2              if(KeyNum==1)
+  26   2              {
+  27   3                  P3_0=0;
+  28   3                  RunFlag=!RunFlag;
+  29   3              }
+  30   2              if(KeyNum==2)
+  31   2              {
+  32   3                  // 此时控制数位
+  33   3                  // 保证数位控制永远不会超过3
+  34   3                  Wei= (Wei + 1)%3;
+  35   3              }
+  36   2              if(KeyNum==3)
+  37   2              {
+  38   3                  // 对应数位上的数字加一
+  39   3                  ShuweiTable[Wei] = (ShuweiTable[Wei] + 1) % 10;
+  40   3                  // 设置缓存区
+  41   3                  Nixie_SetBuf(Wei+1,ShuweiTable[Wei]);
+  42   3                  /*
+  43   3                  // 只显示对应位
+  44   3                  Nixie_Scan(Wei+1,ShuweiTable[Wei]);
+  45   3                  */  
+  46   3              }
+  47   2              if(KeyNum==4)
+  48   2              {
+  49   3                  // 对应数位上的数字减一
+  50   3                  // 防止负数溢出
+  51   3                  if (ShuweiTable[Wei] - 1 <0)
+  52   3                    ShuweiTable[Wei]=9;
+  53   3                  else
+  54   3                    ShuweiTable[Wei] = (ShuweiTable[Wei] - 1) % 10;
+C51 COMPILER V9.54   MAIN                                                                  05/08/2024 00:15:50 PAGE 2   
+
+  55   3                  // 设置缓存区
+  56   3                  Nixie_SetBuf(Wei+1,ShuweiTable[Wei]);
+  57   3                  /*
+  58   3                  // 只显示对应位
+  59   3                  Nixie_Scan(Wei+1,ShuweiTable[Wei]);
+  60   3                  */
+  61   3              }
+  62   2          }
+  63   1      }
+  64          
+  65          
+  66          void Timer0_Rountine() interrupt 1
+  67          {
+  68   1          static unsigned char T0Count1=0,T0Count2=0;   
+  69   1          TH0 = 0xFC; 
+  70   1          TL0 = 0x66;     //设定定时初值
+  71   1          T0Count1++;
+  72   1          //中断一次就是一微秒，1000次就是1秒
+  73   1          if(T0Count1>=20)
+  74   1          {
+  75   2              // 采用定时器每20ms扫描一次键盘
+  76   2              T0Count1=0;
+  77   2              Key_Loop();
+  78   2          }
+  79   1          T0Count2++;
+  80   1          if(T0Count2>=2&&RunFlag)
+  81   1          {
+  82   2              // 定时器每2ms扫一次数码管
+  83   2              T0Count2=0;
+  84   2              Nixie_Loop();
+  85   2          }
+  86   1          if(T0Count2>=2&&!RunFlag)
+  87   1          {
+  88   2              // 定时器每2ms扫一次数码管
+  89   2              T0Count2=0;
+  90   2              Nixie_Change_Loop(Wei + 1);
+  91   2              //Nixie_each_Loop(Wei+1);
+  92   2          }
+  93   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    302    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      8    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
