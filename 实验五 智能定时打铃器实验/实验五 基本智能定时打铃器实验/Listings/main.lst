@@ -1,0 +1,156 @@
+C51 COMPILER V9.54   MAIN                                                                  05/29/2024 19:47:10 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Tool\Keil5\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Delay.h"
+   3          #include "Nixie.h"
+   4          #include "Timer0.h"
+   5          #include "Key.h"
+   6          
+   7          unsigned char RunFlag=1;      // RunFlag:模式选择,显示模式/修改模式
+   8          unsigned char Time[3] = {0, 0, 0};
+   9          // Time[0]是秒，Time[1]是分，Time[2]是时
+  10          
+  11          // 依次按照秒，分，时进行定时设置
+  12          unsigned char SetTime[] = {10, 0, 0, 30, 0, 0, 0, 1, 0, 10, 1, 0, 20, 1, 0};
+  13          unsigned char RingFlag;   // 用于判断打铃的标志
+  14          unsigned char RingTime = 5; // 打铃秒数
+  15          
+  16          
+  17          void main()
+  18          {
+  19   1          Timer0Init();
+  20   1          // 括号内不带参数
+  21   1          // 注意函数名字对应
+  22   1          // 在C51中，调用已经写好的函数前面也不需要加void或者int
+  23   1          // 你像void Timer0Init();就无法调用函数了
+  24   1          P1 = 0xFF;    // 进入输入模式
+  25   1          while(1)
+  26   1          {
+  27   2              if(RunFlag)
+  28   2              {
+  29   3                // 非调试模式，即正常模式
+  30   3                // Time[0]秒，Time[1]分钟,Time[2]小时
+  31   3                Nixie_SetBuf(1,Time[2]/10);
+  32   3                Nixie_SetBuf(2,Time[2]%10);
+  33   3                Nixie_SetBuf(3,Time[1]/10);
+  34   3                Nixie_SetBuf(4,Time[1]%10);
+  35   3                Nixie_SetBuf(5,Time[0]/10);
+  36   3                Nixie_SetBuf(6,Time[0]%10);
+  37   3              }
+  38   2          }
+  39   1      }
+  40          
+  41          unsigned char check(unsigned char thePoint)
+  42          {
+  43   1          if(thePoint >= (sizeof (SetTime) / sizeof (unsigned char)))
+  44   1            // 超出数组长度直接报错返回
+  45   1            return 0;
+  46   1          
+  47   1          if(Time[0] == SetTime[thePoint] && Time[1] == SetTime[thePoint+1] && Time[2] == SetTime[thePoint+2])
+  48   1            return 1;
+  49   1          else
+  50   1            return 0;
+  51   1      }
+  52          
+  53          void Sec_Loop(void)
+  54          {
+C51 COMPILER V9.54   MAIN                                                                  05/29/2024 19:47:10 PAGE 2   
+
+  55   1          // 方便查找比对的静态指针
+  56   1          static unsigned char SetPoint;
+  57   1          if(RunFlag)
+  58   1          {
+  59   2              // 检查是否在非打铃状态下，然后判断是否需要打铃
+  60   2              if(check(SetPoint) && !RingFlag)
+  61   2              {
+  62   3                  RingFlag = RingTime;
+  63   3                  // 指针跳转到下一个需要打铃的秒数上
+  64   3                  SetPoint += 3;
+  65   3              }
+  66   2              
+  67   2              if(RingFlag)
+  68   2              {
+  69   3                  RingFlag--;
+  70   3                  P1_4 = 0;
+  71   3              }
+  72   2              else
+  73   2              {
+  74   3                  P1_4 = 1;
+  75   3              }
+  76   2      
+  77   2              Time[0]++;
+  78   2              if(Time[0]>=60)
+  79   2              {
+  80   3                  Time[0]=0;
+  81   3                  Time[1]++;
+  82   3                  if(Time[1]>=60)
+  83   3                  {
+  84   4                      Time[1]=0;
+  85   4                      Time[2]++;
+  86   4                      if(Time[2]>=24)
+  87   4                      {
+  88   5                          Time[2]=0;
+  89   5                      }
+  90   4                  }
+  91   3              }
+  92   2          }
+  93   1      }
+  94          
+  95          
+  96          void Timer0_Rountine() interrupt 1
+  97          {
+  98   1          static unsigned char T0Count1=0,T0Count2=0;   
+  99   1          static unsigned int T0Count3=0;
+ 100   1          TH0 = 0xFC;     // 1ms装填初值
+ 101   1          TL0 = 0x66;     // 设定定时初值
+ 102   1          
+ 103   1          T0Count1++;
+ 104   1          //中断一次就是一毫秒，1000次就是1秒
+ 105   1          if(T0Count1>=20)
+ 106   1          {
+ 107   2              // 采用定时器每20ms扫描一次键盘
+ 108   2              T0Count1=0;
+ 109   2              Key_Loop();
+ 110   2          }
+ 111   1          
+ 112   1          T0Count2++;
+ 113   1          if(T0Count2>=2 && RunFlag)
+ 114   1          {
+ 115   2              // 定时器每2ms扫一次数码管
+ 116   2              T0Count2=0;
+C51 COMPILER V9.54   MAIN                                                                  05/29/2024 19:47:10 PAGE 3   
+
+ 117   2              Nixie_Loop();
+ 118   2          }
+ 119   1          
+ 120   1          T0Count3++;
+ 121   1          if(T0Count3>=1000)
+ 122   1          {
+ 123   2              // 1ms * 1000 = 1s
+ 124   2              T0Count3=0;
+ 125   2              Sec_Loop();
+ 126   2          }
+ 127   1          
+ 128   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    335    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     26    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
