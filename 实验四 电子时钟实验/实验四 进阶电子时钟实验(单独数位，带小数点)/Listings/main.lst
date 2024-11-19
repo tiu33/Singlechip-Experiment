@@ -1,0 +1,254 @@
+C51 COMPILER V9.54   MAIN                                                                  05/20/2024 18:58:59 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Tool\Keil5\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Delay.h"
+   3          #include "Nixie.h"
+   4          #include "Timer0.h"
+   5          #include "Key.h"
+   6          
+   7          unsigned char RunFlag=1;      //RunFlag:模式选择,显示模式/修改模式
+   8          unsigned char KeyNum;         //KeyNum:键盘对应模式序号
+   9          //1是校准
+  10          //2是调时，3是调分，4是调秒
+  11          unsigned char Time[6];
+  12          //Time[0]对应小时的十位，Time[1]对应小时的个位
+  13          //Time[2]对应分钟的十位，Time[3]对应分钟的个位
+  14          //Time[4]对应秒的十位，Time[5]对应秒的个位
+  15          unsigned char SetTime[6];
+  16          unsigned char Wei, tmpNum, i, j;   // Wei表示选取时钟数位，tmp是暂存确定数据
+  17          
+  18          
+  19          void main()
+  20          {
+  21   1          Timer0Init();
+  22   1          // 括号内不带参数
+  23   1          // 注意函数名字对应
+  24   1          // 在C51中，调用已经写好的函数前面也不需要加void或者int
+  25   1          // 你像void Timer0Init();就无法调用函数了
+  26   1          while(1)
+  27   1          {
+  28   2              KeyNum=Key();
+  29   2              if(KeyNum == 0x0A)
+  30   2              {
+  31   3                  // A号键位进入暂停/启动，设置模式切换
+  32   3                  //P3_0=~P3_0;
+  33   3                  RunFlag=!RunFlag;
+  34   3                  for(j=0;j<=5;j++)
+  35   3                  {
+  36   4                      SetTime[j] = Time[j];
+  37   4                  }
+  38   3              }
+  39   2              
+  40   2              if(!RunFlag && KeyNum == 0x0B)
+  41   2              {
+  42   3                  // B号键位选取数位
+  43   3                  Wei = (Wei + 1)%6;
+  44   3                  //P3 = ~(0x01<<Wei);
+  45   3              }
+  46   2              
+  47   2              if(!RunFlag && (KeyNum >= 0x01 && KeyNum <= 0x09 || KeyNum == 0x10))
+  48   2              {
+  49   3                  // 数字键位设置数字
+  50   3                  // 对0特殊处理
+  51   3                  if(KeyNum == 0x10)KeyNum = 0;
+  52   3                  SetTime[Wei] = KeyNum;
+  53   3                  //P3_2=~P3_2;
+  54   3              }
+C51 COMPILER V9.54   MAIN                                                                  05/20/2024 18:58:59 PAGE 2   
+
+  55   2              
+  56   2              if(!RunFlag && KeyNum == 0x0C )
+  57   2              {
+  58   3                  // C号键位确认
+  59   3                  for(i=0;i<=5;i++)
+  60   3                  {
+  61   4                      if(i==0)
+  62   4                      {
+  63   5                          if(SetTime[i]>=3)
+  64   5                            Time[i]=0;
+  65   5                          else
+  66   5                            Time[i]=SetTime[i];
+  67   5                      }
+  68   4                      else if(i==1)
+  69   4                      {
+  70   5                          if(SetTime[0]==2 && SetTime[i]>=4)
+  71   5                            Time[i]=0;
+  72   5                          else
+  73   5                            Time[i]=SetTime[i];
+  74   5                      }
+  75   4                      else if(i==2 || i == 4)
+  76   4                      {
+  77   5                          if(SetTime[i]>=6)
+  78   5                            Time[i]=0;
+  79   5                          else
+  80   5                            Time[i]=SetTime[i];
+  81   5                      }
+  82   4                      else if(i==3 || i== 5)
+  83   4                      {
+  84   5                          Time[i]=SetTime[i];
+  85   5                      }
+  86   4                  }
+  87   3                  /*
+  88   3                  switch(Wei)
+  89   3                  {
+  90   3                    case 5:
+  91   3                      Time[Wei] = tmpNum;break;
+  92   3                    case 4:
+  93   3                      if(tmpNum>=6)break;
+  94   3                      Time[Wei] = tmpNum;break;
+  95   3                    case 3:
+  96   3                      Time[Wei] = tmpNum;break;
+  97   3                    case 2:
+  98   3                      if(tmpNum>=6)break;
+  99   3                      Time[Wei] = tmpNum;break;
+ 100   3                    case 1:
+ 101   3                      if(Time[0] == 2 && tmpNum>=4)break;
+ 102   3                      Time[Wei] = tmpNum;break;
+ 103   3                    case 0:
+ 104   3                      if(tmpNum>=3)break;
+ 105   3                      Time[Wei] = tmpNum;break;
+ 106   3                  }
+ 107   3                  tmpNum = 0;
+ 108   3                  */
+ 109   3                  RunFlag=!RunFlag;
+ 110   3              }
+ 111   2              
+ 112   2              if(!RunFlag && KeyNum == 0x0D )
+ 113   2              {
+ 114   3                  // D号键位取消，我们就当无事发生
+ 115   3                  RunFlag=!RunFlag;
+ 116   3              }
+C51 COMPILER V9.54   MAIN                                                                  05/20/2024 18:58:59 PAGE 3   
+
+ 117   2              
+ 118   2              if(RunFlag)
+ 119   2              {
+ 120   3                  // 非调试模式，即正常模式
+ 121   3                  //Time[0]对应小时的十位，Time[1]对应小时的个位
+ 122   3                  //Time[2]对应分钟的十位，Time[3]对应分钟的个位
+ 123   3                  //Time[4]对应秒的十位，Time[5]对应秒的个位
+ 124   3                  for(i=1;i<=6;i++)
+ 125   3                  {
+ 126   4                      Nixie_SetBuf(i,Time[i-1]);
+ 127   4                  }
+ 128   3              }
+ 129   2              else
+ 130   2              {
+ 131   3                  // 调试模式，单独显示
+ 132   3                  /*
+ 133   3                  for(i=1;i<=6;i++)
+ 134   3                  {
+ 135   3                      Nixie_SetBuf(i,SetTime[i-1]);
+ 136   3                  }
+ 137   3                  */
+ 138   3                    Nixie_SetBuf(Wei + 1,SetTime[Wei]);
+ 139   3                  // tmpNum表示当前更改的数位对应更改的数字
+ 140   3                  //Nixie_SetBuf(Wei+1,tmpNum);
+ 141   3              }
+ 142   2      
+ 143   2          }
+ 144   1      }
+ 145          
+ 146          void Sec_Loop(void)
+ 147          {
+ 148   1          if(RunFlag)
+ 149   1          {
+ 150   2              Time[5]++;
+ 151   2              if(Time[5]>=10)
+ 152   2              {
+ 153   3                  Time[4]++;
+ 154   3                  Time[5]=0;
+ 155   3                  if(Time[4]>=6)
+ 156   3                  {
+ 157   4                      Time[3]++;
+ 158   4                      Time[4]=0;
+ 159   4                      if(Time[3]>=10)
+ 160   4                      {
+ 161   5                          Time[2]++;
+ 162   5                          Time[3]=0;
+ 163   5                          if(Time[2]>=6)
+ 164   5                          {
+ 165   6                              Time[1]++;
+ 166   6                              Time[2]=0;
+ 167   6                              if(Time[0]<2&&Time[1]>=10)
+ 168   6                              {
+ 169   7                                  Time[0]++;
+ 170   7                                  Time[1]=0;
+ 171   7                              }
+ 172   6                              else if(Time[0]==2&&Time[1]>=4)
+ 173   6                              {
+ 174   7                                  Time[0]=0;
+ 175   7                                  Time[1]=0;
+ 176   7                              }
+ 177   6                          }
+ 178   5                      }
+C51 COMPILER V9.54   MAIN                                                                  05/20/2024 18:58:59 PAGE 4   
+
+ 179   4                  }
+ 180   3              }
+ 181   2          }
+ 182   1      }
+ 183          
+ 184          
+ 185          void Timer0_Rountine() interrupt 1
+ 186          {
+ 187   1          static unsigned char T0Count1=0,T0Count2=0;   
+ 188   1          static unsigned int T0Count3=0;
+ 189   1          TH0 = 0xFC;     // 1ms装填初值
+ 190   1          TL0 = 0x66;     // 设定定时初值
+ 191   1          
+ 192   1          T0Count1++;
+ 193   1          //中断一次就是一毫秒，1000次就是1秒
+ 194   1          if(T0Count1>=20)
+ 195   1          {
+ 196   2              // 采用定时器每20ms扫描一次键盘
+ 197   2              T0Count1=0;
+ 198   2              Key_Loop();
+ 199   2          }
+ 200   1          
+ 201   1          T0Count2++;
+ 202   1          if(T0Count2>=2 && RunFlag)
+ 203   1          {
+ 204   2              // 定时器每2ms扫一次数码管
+ 205   2              T0Count2=0;
+ 206   2              Nixie_Loop();
+ 207   2          }
+ 208   1          if(T0Count2>=2 && !RunFlag)
+ 209   1          {
+ 210   2              // 定时器每2ms扫一次数码管
+ 211   2              T0Count2=0;
+ 212   2              Nixie_Change_Loop(Wei + 1); 
+ 213   2              //Nixie_each_Loop(Wei + 1);
+ 214   2          }
+ 215   1          
+ 216   1          T0Count3++;
+ 217   1          if(T0Count3>=1000)
+ 218   1          {
+ 219   2              // 1ms * 1000 = 1s
+ 220   2              T0Count3=0;
+ 221   2              Sec_Loop();
+ 222   2          }
+ 223   1          
+ 224   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    564    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     22    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
