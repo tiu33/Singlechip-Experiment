@@ -1,0 +1,277 @@
+C51 COMPILER V9.54   MAIN                                                                  05/29/2024 19:44:52 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Tool\Keil5\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Delay.h"
+   3          #include "Nixie.h"
+   4          #include "Timer0.h"
+   5          #include "Key.h"
+   6          
+   7          unsigned char RunFlag=0;      // RunFlag:模式选择,显示模式/修改模式
+   8          unsigned char KeyNum;         // KeyNum:键盘对应模式序号
+   9          // 1是设置
+  10          // 2是调整设置数位，3是数位增一，4是数位减一
+  11          unsigned char Time[6];
+  12          //Time[0]对应小时的十位，Time[1]对应小时的个位
+  13          //Time[2]对应分钟的十位，Time[3]对应分钟的个位
+  14          //Time[4]对应秒的十位，Time[5]对应秒的个位
+  15          unsigned char Wei, tmpPoint, j;   // Wei表示选取时钟数位，tmpPoint是暂存静态指针
+  16          unsigned char tmpTime[6];
+  17          
+  18          // 依次按照秒，分，时进行定时设置
+  19          unsigned char SetTime[18];    // 主程序缓存
+  20          unsigned char RingFlag;     // 用于判断打铃的标志
+  21          unsigned char RingTime = 5; // 打铃秒数
+  22          unsigned char ZeroFlag;     // 设置反馈标志
+  23          // 能设置几次，即SetTime中元素个数除以6
+  24          unsigned char SetChance = (sizeof (SetTime) / (6 * sizeof (unsigned char)));
+  25          
+  26          
+  27          void main()
+  28          {
+  29   1          Timer0Init();
+  30   1          // 括号内不带参数
+  31   1          // 注意函数名字对应
+  32   1          // 在C51中，调用已经写好的函数前面也不需要加void或者int
+  33   1          // 你像void Timer0Init();就无法调用函数了
+  34   1          P1 = 0x0F;    // 进入输入模式
+  35   1          while(1)
+  36   1          {
+  37   2              KeyNum=Key();
+  38   2              //P3 = (0x01<<SetChance);
+  39   2              if(KeyNum==1)
+  40   2              {
+  41   3                  // A号键位进入暂停/启动，设置模式切换
+  42   3                  //P3_0=~P3_0;
+  43   3                  if(!SetChance)
+  44   3                      RunFlag=!RunFlag;
+  45   3                  else
+  46   3                  {
+  47   4                      for(j=0;j<=5;j++)
+  48   4                      {
+  49   5                          SetTime[tmpPoint+j] = tmpTime[j];
+  50   5                      }
+  51   4                      /*
+  52   4                      SetTime[tmpPoint] = tmpTime[0];
+  53   4                      SetTime[tmpPoint+1] = tmpTime[2]*10 + tmpTime[3];
+  54   4                      SetTime[tmpPoint+2] = tmpTime[0]*10 + tmpTime[1];
+C51 COMPILER V9.54   MAIN                                                                  05/29/2024 19:44:52 PAGE 2   
+
+  55   4                      */
+  56   4                      tmpPoint += 6;
+  57   4                      ZeroFlag = 200;
+  58   4                      SetChance--;
+  59   4                  }
+  60   3              }
+  61   2              
+  62   2              if(!RunFlag && KeyNum==2)
+  63   2              {
+  64   3                  // B号键位选取数位
+  65   3                  Wei = (Wei + 1)%6;
+  66   3                  //P3 = ~(0x01<<Wei);
+  67   3              }
+  68   2              
+  69   2              if(!RunFlag && KeyNum == 3)
+  70   2              {
+  71   3                  if((Wei == 2 || Wei == 4) && tmpTime[Wei] < 5)
+  72   3                    // 分钟与秒的十位数
+  73   3                    tmpTime[Wei] += 1;
+  74   3                  else if((Wei == 3 || Wei == 5) && tmpTime[Wei] < 9)
+  75   3                    // 分钟与秒的个位数
+  76   3                    tmpTime[Wei] += 1;
+  77   3                  else if(Wei == 0 && tmpTime[Wei] < 2)
+  78   3                    // 小时的十位数
+  79   3                    tmpTime[Wei] += 1;
+  80   3                  else if(Wei == 1 && tmpTime[0] == 2 && tmpTime[Wei] < 3)
+  81   3                    // 2开头的小时的个位数
+  82   3                    tmpTime[Wei] += 1;
+  83   3                  else if(Wei == 1 && tmpTime[0] != 2 && tmpTime[Wei] < 9)
+  84   3                    // 非2开头的小时的个位数
+  85   3                    tmpTime[Wei] += 1;
+  86   3              }
+  87   2              
+  88   2              if(!RunFlag && KeyNum == 4)
+  89   2              {
+  90   3                  if((Wei == 2 || Wei == 4) && tmpTime[Wei] > 0)
+  91   3                    // 分钟与秒的十位数
+  92   3                    tmpTime[Wei] -= 1;
+  93   3                  else if((Wei == 3 || Wei == 5) && tmpTime[Wei] > 0)
+  94   3                    // 分钟与秒的个位数
+  95   3                    tmpTime[Wei] -= 1;
+  96   3                  else if(Wei == 0 && tmpTime[Wei] > 0)
+  97   3                    // 小时的十位数
+  98   3                    tmpTime[Wei] -= 1;
+  99   3                  else if(Wei == 1 && tmpTime[Wei] > 0)
+ 100   3                    // 小时的个位数
+ 101   3                    tmpTime[Wei] -= 1;
+ 102   3              }
+ 103   2              
+ 104   2              if(RunFlag)
+ 105   2              {
+ 106   3                  // 非调试模式，即正常模式
+ 107   3                  //Time[0]对应小时的十位，Time[1]对应小时的个位
+ 108   3                  //Time[2]对应分钟的十位，Time[3]对应分钟的个位
+ 109   3                  //Time[4]对应秒的十位，Time[5]对应秒的个位
+ 110   3                  Nixie_SetBuf(1,Time[0]);
+ 111   3                  Nixie_SetBuf(2,Time[1]);
+ 112   3                  Nixie_SetBuf(3,Time[2]);
+ 113   3                  Nixie_SetBuf(4,Time[3]);
+ 114   3                  Nixie_SetBuf(5,Time[4]);
+ 115   3                  Nixie_SetBuf(6,Time[5]);
+ 116   3              }
+C51 COMPILER V9.54   MAIN                                                                  05/29/2024 19:44:52 PAGE 3   
+
+ 117   2              else
+ 118   2              {
+ 119   3                  // 调试模式，单独显示
+ 120   3                  Nixie_SetBuf(Wei+1,tmpTime[Wei]);
+ 121   3              }
+ 122   2      
+ 123   2          }
+ 124   1      }
+ 125          
+ 126          unsigned char check(unsigned char thePoint)
+ 127          {
+ 128   1          if(thePoint >= (sizeof (SetTime) / sizeof (unsigned char)))
+ 129   1            // 超出数组长度直接报错返回
+ 130   1            return 0;
+ 131   1          
+ 132   1          for(j=0;j<=5;j++)
+ 133   1          {
+ 134   2              if(Time[j] !=  SetTime[thePoint + j])
+ 135   2                  return 0;
+ 136   2          }
+ 137   1          
+ 138   1          return 1;
+ 139   1      }
+ 140          
+ 141          void Sec_Loop(void)
+ 142          {
+ 143   1          // 方便查找比对的静态指针
+ 144   1          static unsigned char SetPoint;
+ 145   1          if(RunFlag)
+ 146   1          {
+ 147   2              // 检查是否在非打铃状态下，然后判断是否需要打铃
+ 148   2              if(check(SetPoint) && !RingFlag)
+ 149   2              {
+ 150   3                  RingFlag = RingTime;
+ 151   3                  // 指针跳转到下一个需要打铃的秒数上
+ 152   3                  SetPoint += 6;
+ 153   3              }
+ 154   2              
+ 155   2              if(RingFlag)
+ 156   2              {
+ 157   3                  RingFlag--;
+ 158   3                  P1_4 = 0;
+ 159   3              }
+ 160   2              else
+ 161   2              {
+ 162   3                  P1_4 = 1;
+ 163   3              }
+ 164   2              
+ 165   2              Time[5]++;
+ 166   2              if(Time[5]>=10)
+ 167   2              {
+ 168   3                  Time[4]++;
+ 169   3                  Time[5]=0;
+ 170   3                  if(Time[4]>=6)
+ 171   3                  {
+ 172   4                      Time[3]++;
+ 173   4                      Time[4]=0;
+ 174   4                      if(Time[3]>=10)
+ 175   4                      {
+ 176   5                          Time[2]++;
+ 177   5                          Time[3]=0;
+ 178   5                          if(Time[2]>=6)
+C51 COMPILER V9.54   MAIN                                                                  05/29/2024 19:44:52 PAGE 4   
+
+ 179   5                          {
+ 180   6                              Time[1]++;
+ 181   6                              Time[2]=0;
+ 182   6                              if(Time[0]<2&&Time[1]>=10)
+ 183   6                              {
+ 184   7                                  Time[0]++;
+ 185   7                                  Time[1]=0;
+ 186   7                              }
+ 187   6                              else if(Time[0]==2&&Time[1]>=4)
+ 188   6                              {
+ 189   7                                  Time[0]=0;
+ 190   7                                  Time[1]=0;
+ 191   7                              }
+ 192   6                          }
+ 193   5                      }
+ 194   4                  }
+ 195   3              }
+ 196   2          }
+ 197   1      }
+ 198          
+ 199          void Timer0_Rountine() interrupt 1
+ 200          {
+ 201   1          static unsigned char T0Count1=0,T0Count2=0;   
+ 202   1          static unsigned int T0Count3=0;
+ 203   1          TH0 = 0xFC;     // 1ms装填初值
+ 204   1          TL0 = 0x66;     // 设定定时初值
+ 205   1          
+ 206   1          T0Count1++;
+ 207   1          //中断一次就是一毫秒，1000次就是1秒
+ 208   1          if(T0Count1>=20)
+ 209   1          {
+ 210   2              // 采用定时器每20ms扫描一次键盘
+ 211   2              T0Count1=0;
+ 212   2              Key_Loop();
+ 213   2          }
+ 214   1          
+ 215   1          T0Count2++;
+ 216   1          if(T0Count2>=2 && RunFlag)
+ 217   1          {
+ 218   2              // 定时器每2ms扫一次数码管
+ 219   2              T0Count2=0;
+ 220   2              Nixie_Loop();
+ 221   2          }
+ 222   1          if(T0Count2>=2 && !RunFlag)
+ 223   1          {
+ 224   2              // 定时器每2ms扫一次数码管
+ 225   2              T0Count2=0;
+ 226   2              if(ZeroFlag)
+ 227   2              {
+ 228   3                // 反馈闪烁
+ 229   3                //P3_0 = 1;
+ 230   3                ZeroFlag--;
+ 231   3              }
+ 232   2              else
+ 233   2                Nixie_Change_Loop(Wei + 1); 
+ 234   2              //Nixie_each_Loop(Wei + 1);
+ 235   2          }
+ 236   1          
+ 237   1          T0Count3++;
+ 238   1          if(T0Count3>=1000)
+ 239   1          {
+ 240   2              // 1ms * 1000 = 1s
+C51 COMPILER V9.54   MAIN                                                                  05/29/2024 19:44:52 PAGE 5   
+
+ 241   2              T0Count3=0;
+ 242   2              Sec_Loop();
+ 243   2          }
+ 244   1          
+ 245   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    715    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     44    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
